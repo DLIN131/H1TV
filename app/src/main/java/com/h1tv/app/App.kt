@@ -26,4 +26,9 @@ object Prefs {
     var quality: Int
         get() = sp.getInt("quality", 1080)
         set(value) = sp.edit().putInt("quality", value).apply()
+
+    /** 使用者選「略過這個版本」的 versionCode，自動檢查時不再提示這一版 */
+    var skippedVersion: Int
+        get() = sp.getInt("skipped_version", 0)
+        set(value) = sp.edit().putInt("skipped_version", value).apply()
 }
