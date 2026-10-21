@@ -54,5 +54,8 @@ jobs:
           body: |
             ${{ github.event.head_commit.message }}
 
+            ---
+            固定下載網址（永遠是最新版）：
+            https://github.com/${{ github.repository }}/releases/latest/download/H1TV.apk
 
             Downloader 下載碼：3011797
