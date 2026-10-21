@@ -24,6 +24,8 @@
 固定下載網址（永遠是最新版）：
 `https://github.com/DLIN131/H1TV/releases/latest/download/H1TV.apk`
 
+**電視上用 Downloader 安裝**：在 Downloader App 輸入下載碼 **`3011797`**（或網址 `aftv.news/3011797`），永遠指向最新版。
+
 每次 push 到 `main`，GitHub Actions 會自動建置簽章 APK 並發佈 Release `v1.0.<run_number>`。
 
 ## 第一次開啟
