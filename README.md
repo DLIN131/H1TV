@@ -38,7 +38,7 @@
 
 固定下載網址（永遠是最新版）：
 - 電視版：`https://github.com/DLIN131/H1TV/releases/latest/download/H1TV.apk`
-- 平板／手機版：`https://github.com/DLIN131/H1TV/releases/latest/download/H1Pad.apk`
+- 平板／手機版：`https://github.com/DLIN131/H1TV/releases/latest/download/H1TVPad.apk`
 
 **電視上用 Downloader 安裝**：在 Downloader App 輸入下載碼 **`3011797`**（或網址 `aftv.news/3011797`），永遠指向最新的電視版。
 

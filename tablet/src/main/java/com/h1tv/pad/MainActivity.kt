@@ -46,7 +46,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        Updater.apkName = "H1Pad.apk"
+        Updater.apkName = "H1TVPad.apk"
         setContent {
             PadTheme { AppRoot() }
         }
