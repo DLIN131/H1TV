@@ -15,4 +15,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "H1TV"
-include(":app")
+include(":core", ":app", ":tablet")

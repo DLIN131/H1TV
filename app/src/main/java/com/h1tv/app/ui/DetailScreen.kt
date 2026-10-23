@@ -45,29 +45,11 @@ import com.h1tv.app.net.Store
 import com.h1tv.app.net.Video
 import com.h1tv.app.net.VideoDetail
 import com.h1tv.app.player.PlayerActivity
+import com.h1tv.app.util.fmtTime
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-class DetailViewModel(private val id: String) : ViewModel() {
-    var detail by mutableStateOf<VideoDetail?>(null)
-        private set
-    var error by mutableStateOf<String?>(null)
-        private set
-
-    fun load() {
-        error = null
-        viewModelScope.launch {
-            try {
-                detail = Site.detail(id)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                error = e.message ?: "載入失敗"
-            }
-        }
-    }
-}
 
 @Composable
 fun DetailScreen(video: Video) {
@@ -203,7 +185,3 @@ fun DetailScreen(video: Video) {
     }
 }
 
-fun fmtTime(ms: Long): String {
-    val s = ms / 1000
-    return if (s >= 3600) "%d:%02d:%02d".format(s / 3600, s / 60 % 60, s % 60) else "%d:%02d".format(s / 60, s % 60)
-}

@@ -35,7 +35,7 @@ import com.h1tv.app.Prefs
 import com.h1tv.app.net.Source
 import com.h1tv.app.net.Store
 import com.h1tv.app.net.WebFetcher
-import com.h1tv.app.ui.fmtTime
+import com.h1tv.app.util.fmtTime
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive

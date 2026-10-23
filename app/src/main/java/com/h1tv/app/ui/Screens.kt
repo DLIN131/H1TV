@@ -56,32 +56,6 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-class HomeViewModel : ViewModel() {
-    val rows = mutableStateListOf<HomeRow>()
-    var loading by mutableStateOf(false)
-        private set
-    var error by mutableStateOf<String?>(null)
-        private set
-
-    fun load() {
-        if (loading) return
-        loading = true
-        error = null
-        viewModelScope.launch {
-            try {
-                val r = Site.home()
-                rows.clear()
-                rows.addAll(r)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                error = e.message ?: "載入失敗"
-            } finally {
-                loading = false
-            }
-        }
-    }
-}
 
 /** 首頁：網站首頁的每一列（最新上市、最新上傳、各類型…） */
 @Composable

@@ -53,7 +53,6 @@ import androidx.tv.material3.ModalNavigationDrawer
 import androidx.tv.material3.NavigationDrawerItem
 import androidx.tv.material3.Text
 import androidx.tv.material3.rememberDrawerState
-import com.h1tv.app.BuildConfig
 import com.h1tv.app.Prefs
 import com.h1tv.app.net.Site
 import com.h1tv.app.util.Updater
@@ -122,7 +121,7 @@ fun AppRoot() {
 
     // 開啟時檢查 GitHub 有沒有新版，由使用者決定要不要更新（debug 版的 versionCode 固定是 1，不自動檢查）
     LaunchedEffect(Unit) {
-        if (!BuildConfig.DEBUG) {
+        if (!Updater.isDebugBuild) {
             runCatching { Updater.check() }.getOrNull()
                 ?.takeIf { it.versionCode != Prefs.skippedVersion }
                 ?.let { Updater.pending = it }

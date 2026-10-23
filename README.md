@@ -1,16 +1,21 @@
 # H1TV
 
-給 Android TV / 電視盒子用的影片瀏覽用戶端，全程用遙控器操作。Jetpack Compose for TV + Media3。
+影片瀏覽用戶端，有兩個版本：
+
+- **H1TV（電視版）**：給 Android TV／電視盒子，全程用遙控器操作。Jetpack Compose for TV + Media3。
+- **H1Pad（平板／手機版）**：給 Android 平板和手機，觸控操作。寬螢幕用左側導覽列，手機直拿時改成底部導覽列。
+
+兩個版本共用同一套資料、解析和更新程式（`core/`），可以同時裝在同一台裝置上。
 
 ## 功能
 - **首頁**：分成多列推薦，每列可「查看更多」
 - **分類**：類型 × 排序（最新、排行、觀看次數…），自動翻頁
 - **搜尋**：記住最近搜尋的關鍵字；可從標籤、作者延伸瀏覽
-- **收藏、觀看紀錄、續播進度**：全部存在電視本機，不需要登入
+- **收藏、觀看紀錄、續播進度**：全部存在裝置本機，不需要登入
 - **播放器**：多畫質切換（記住偏好），播放失敗自動降畫質
 - **App 內更新**：開啟時檢查新版本，可選「立即更新」「稍後再說」或「略過這個版本」
 
-## 遙控器操作（播放中）
+## 電視版：遙控器操作（播放中）
 | 按鍵 | 功能 |
 |---|---|
 | OK | 暫停／播放 |
@@ -20,22 +25,36 @@
 | ↓ | 顯示／隱藏進度列 |
 | 返回 | 離開播放 |
 
+## 平板版：觸控操作（播放中）
+| 手勢 | 功能 |
+|---|---|
+| 點一下 | 顯示控制列（進度條、暫停、快退快進） |
+| 左半邊／右半邊點兩下 | 快退／快進 10 秒 |
+| 長按畫面 | 按住期間 2 倍速播放，放開恢復 |
+| 右上角畫質按鈕 | 選擇畫質 |
+
 ## 下載
-到 [Releases](../../releases/latest) 下載最新的 `H1TV.apk`，用側載方式安裝。
+到 [Releases](../../releases/latest) 下載最新版，用側載方式安裝。
 
 固定下載網址（永遠是最新版）：
-`https://github.com/DLIN131/H1TV/releases/latest/download/H1TV.apk`
+- 電視版：`https://github.com/DLIN131/H1TV/releases/latest/download/H1TV.apk`
+- 平板／手機版：`https://github.com/DLIN131/H1TV/releases/latest/download/H1Pad.apk`
 
-**電視上用 Downloader 安裝**：在 Downloader App 輸入下載碼 **`3011797`**（或網址 `aftv.news/3011797`），永遠指向最新版。
+**電視上用 Downloader 安裝**：在 Downloader App 輸入下載碼 **`3011797`**（或網址 `aftv.news/3011797`），永遠指向最新的電視版。
 
-每次 push 到 `main`，GitHub Actions 會自動建置簽章 APK 並發佈 Release `v1.0.<run_number>`。
+每次 push 到 `main`，GitHub Actions 會自動建置兩個簽章 APK 並發佈 Release `v1.0.<run_number>`。
 
 ## 第一次開啟
 App 需要先通過網站的瀏覽器驗證，第一次載入約 5～10 秒。
-如果出現「請開啟驗證頁面」，按下按鈕後在畫面上完成驗證，按返回鍵回到 App 再按「重試」。
+如果出現「請開啟驗證頁面」，按下按鈕後在畫面上完成驗證，回到 App 再按「重試」。
+
+## 專案結構
+- `core/`：共用的抓網頁、解析、收藏／紀錄、App 內更新
+- `app/`：電視版
+- `tablet/`：平板／手機版
 
 ## 自己建置
 ```
-./gradlew assembleRelease
+./gradlew :app:assembleRelease :tablet:assembleRelease
 ```
 簽章金鑰放在 `keystore/`（不進版控）；沒有金鑰時會改用 debug 簽章。

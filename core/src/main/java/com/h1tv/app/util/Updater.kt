@@ -10,7 +10,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.FileProvider
-import com.h1tv.app.BuildConfig
+import android.content.pm.ApplicationInfo
+import com.h1tv.app.App
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
@@ -32,8 +33,19 @@ object Updater {
     /** 有新版本時設定，主畫面會跳出更新視窗 */
     var pending by mutableStateOf<Release?>(null)
 
-    val currentVersionCode: Int get() = BuildConfig.VERSION_CODE
-    val currentVersionName: String get() = "v" + BuildConfig.VERSION_NAME
+    /** 同一個 Release 裡有電視版和平板版，各 App 啟動時設定自己要下載的檔名 */
+    var apkName = "H1TV.apk"
+
+    @Suppress("DEPRECATION")
+    private val packageInfo by lazy { App.instance.packageManager.getPackageInfo(App.instance.packageName, 0) }
+
+    @Suppress("DEPRECATION")
+    val currentVersionCode: Int get() = packageInfo.versionCode
+    val currentVersionName: String get() = "v" + packageInfo.versionName
+
+    /** debug 版的 versionCode 固定是 1，不自動檢查更新 */
+    val isDebugBuild: Boolean
+        get() = App.instance.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
 
     private val client by lazy {
         OkHttpClient.Builder()
@@ -53,7 +65,7 @@ object Updater {
             var url: String? = null
             if (assets != null) for (i in 0 until assets.length()) {
                 val a = assets.getJSONObject(i)
-                if (a.optString("name").endsWith(".apk")) {
+                if (a.optString("name") == apkName) {
                     url = a.optString("browser_download_url")
                     break
                 }
@@ -77,7 +89,7 @@ object Updater {
         withContext(Dispatchers.IO) {
             val dir = File(context.cacheDir, "updates").apply { mkdirs() }
             dir.listFiles()?.forEach { it.delete() }
-            val file = File(dir, "H1TV-${release.versionCode}.apk")
+            val file = File(dir, apkName.removeSuffix(".apk") + "-${release.versionCode}.apk")
             client.newCall(Request.Builder().url(release.apkUrl).build()).execute().use { r ->
                 if (!r.isSuccessful) throw IOException("HTTP ${r.code}")
                 val body = r.body!!

@@ -40,8 +40,9 @@ jobs:
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon
+          ./gradlew :app:assembleRelease :tablet:assembleRelease --no-daemon
           cp app/build/outputs/apk/release/app-release.apk H1TV.apk
+          cp tablet/build/outputs/apk/release/tablet-release.apk H1Pad.apk
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
@@ -49,6 +50,8 @@ jobs:
           tag_name: v1.0.${{ github.run_number }}
           name: H1TV v1.0.${{ github.run_number }}
           make_latest: true
+          # 先只放 H1TV.apk 建立 Release，平板版下一步再補上：
+          # 舊版電視 App（v1.0.5）更新時抓的是第一個 .apk，要確保它排第一
           files: H1TV.apk
           # 更新說明就是 commit 訊息
           body: |
@@ -56,6 +59,13 @@ jobs:
 
             ---
             固定下載網址（永遠是最新版）：
-            https://github.com/${{ github.repository }}/releases/latest/download/H1TV.apk
+            電視版：https://github.com/${{ github.repository }}/releases/latest/download/H1TV.apk
+            平板／手機版：https://github.com/${{ github.repository }}/releases/latest/download/H1Pad.apk
 
-            Downloader 下載碼：3011797
+            Downloader 下載碼（電視版）：3011797
+
+      - name: Attach tablet APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          files: H1Pad.apk
