@@ -28,6 +28,7 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.ui.PlayerView
@@ -149,7 +150,13 @@ class PlayerActivity : ComponentActivity() {
             return
         }
 
-        player = ExoPlayer.Builder(this).build().also { it.addListener(listener) }
+        // 預設緩衝最多會吃到上百 MB 記憶體，電視盒子壓到 30 秒／20 MB 就夠順了
+        val loadControl = DefaultLoadControl.Builder()
+            .setBufferDurationsMs(10_000, 30_000, 1_500, 3_000)
+            .setTargetBufferBytes(20 * 1024 * 1024)
+            .setPrioritizeTimeOverSizeThresholds(false)
+            .build()
+        player = ExoPlayer.Builder(this).setLoadControl(loadControl).build().also { it.addListener(listener) }
 
         playerView = PlayerView(this).apply {
             player = this@PlayerActivity.player

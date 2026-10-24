@@ -1,6 +1,8 @@
 package com.h1tv.app.net
 
 import android.annotation.SuppressLint
+import android.os.Handler
+import android.os.Looper
 import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
 import android.webkit.WebSettings
@@ -63,7 +65,11 @@ object WebFetcher {
             loadsImagesAutomatically = false
             blockNetworkImage = true
             mediaPlaybackRequiresUserGesture = true
+            // 只靠 cookie 過驗證，不需要 HTTP 快取，免得網頁檔案一直堆在儲存空間
+            cacheMode = WebSettings.LOAD_NO_CACHE
         }
+        // 清掉之前留下的 WebView 快取（整個 App 共用）
+        w.clearCache(true)
         CookieManager.getInstance().setAcceptCookie(true)
         CookieManager.getInstance().setAcceptThirdPartyCookies(w, true)
         w.webViewClient = WebViewClient()
@@ -77,6 +83,44 @@ object WebFetcher {
         ready = false
     }
 
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private val releaseLater = Runnable { release() }
+    private const val RELEASE_AFTER_MS = 60_000L
+
+    /**
+     * App 退到背景或進入播放器時：先暫停隱藏 WebView 的 JS 計時器和繪製，不佔 CPU；
+     * 超過 1 分鐘還沒回來（例如正在看影片）就整個釋放，把記憶體還給播放器。
+     */
+    fun pause() {
+        web?.let {
+            it.onPause()
+            it.pauseTimers()
+            mainHandler.removeCallbacks(releaseLater)
+            mainHandler.postDelayed(releaseLater, RELEASE_AFTER_MS)
+        }
+    }
+
+    fun resume() {
+        mainHandler.removeCallbacks(releaseLater)
+        web?.let {
+            it.resumeTimers()
+            it.onResume()
+        }
+    }
+
+    private fun release() {
+        val w = web ?: return
+        web = null
+        ready = false
+        pending.values.forEach { it.completeExceptionally(Exception("連線中斷，請重試")) }
+        pending.clear()
+        w.stopLoading()
+        w.removeJavascriptInterface("H1Bridge")
+        // pauseTimers() 是全 App 共用的，釋放前要恢復，不然下一個 WebView 的 JS 不會動
+        w.resumeTimers()
+        w.destroy()
+    }
+
     suspend fun get(path: String): String {
         val url = if (path.startsWith("http")) path else BASE + path
         repeat(2) { attempt ->
@@ -86,8 +130,9 @@ object WebFetcher {
                 if (status !in 200..299) throw Exception("載入失敗（HTTP $status）")
                 return body
             }
-            // cookie 過期，重新跑一次驗證
+            // cookie 過期，重新跑一次完整驗證（不走快速暖機）
             ready = false
+            quickFailed = true
             if (attempt == 1) throw BlockedException()
         }
         throw BlockedException()
@@ -97,12 +142,37 @@ object WebFetcher {
         (status == 403 || status == 503) &&
             (body.contains("cf-") || body.contains("challenge-platform") || body.contains("Cloudflare"))
 
+    /** 快速暖機失敗過（cookie 過期），下次直接走完整驗證 */
+    @Volatile private var quickFailed = false
+
+    /**
+     * 停在同網域的純文字頁（robots.txt）：沒有腳本和廣告，WebView 幾乎不佔 CPU 和記憶體，
+     * 之後的 fetch() 一樣會帶 cookie。成功載入且不是驗證頁才回傳 true。
+     */
+    private suspend fun parkOnPlainPage(w: WebView): Boolean {
+        w.loadUrl("$BASE/robots.txt")
+        return withTimeoutOrNull(10_000) {
+            var plain: Boolean? = null
+            while (plain == null) {
+                delay(300)
+                val state = w.eval("location.pathname+'|'+document.readyState+'|'+document.scripts.length")
+                if (state.startsWith("/robots.txt|complete|")) plain = state.endsWith("|0")
+            }
+            plain
+        } == true
+    }
+
     private suspend fun ensureReady() {
         if (ready) return
         bootLock.withLock {
             if (ready) return
             withContext(Dispatchers.Main) {
                 val w = webView()
+                // 先試快速暖機：之前過驗證的 cookie 還在的話，直接停在純文字頁就好，不用開整個首頁
+                if (!quickFailed && parkOnPlainPage(w)) {
+                    ready = true
+                    return@withContext
+                }
                 w.loadUrl(BASE)
                 // 等驗證頁自己跳轉到正常首頁，最多 30 秒
                 val ok = withTimeoutOrNull(30_000) {
@@ -120,8 +190,11 @@ object WebFetcher {
                     throw BlockedException()
                 }
                 CookieManager.getInstance().flush()
+                // 驗證完就離開首頁（廣告和腳本會一直跑）
+                parkOnPlainPage(w)
+                quickFailed = false
+                ready = true
             }
-            ready = true
         }
     }
 
@@ -134,7 +207,14 @@ object WebFetcher {
               .then(function (r) { return r.text().then(function (t) { H1Bridge.done($id, r.status, t); }); })
               .catch(function (e) { H1Bridge.done($id, -1, String(e)); });
         """.trimIndent()
-        withContext(Dispatchers.Main) { webView().evaluateJavascript(js, null) }
+        withContext(Dispatchers.Main) {
+            // WebView 剛被釋放：下次重新暖機
+            val w = web ?: run {
+                ready = false
+                throw Exception("連線中斷，請重試")
+            }
+            w.evaluateJavascript(js, null)
+        }
         return try {
             val r = withTimeout(30_000) { result.await() }
             if (r.first == -1) throw Exception("網路錯誤：${r.second}")

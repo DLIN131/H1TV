@@ -24,6 +24,7 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.ui.PlayerView
@@ -154,7 +155,14 @@ class PlayerActivity : ComponentActivity() {
             return
         }
 
+        // 預設緩衝最多會吃到上百 MB 記憶體，限制在 50 秒／48 MB
+        val loadControl = DefaultLoadControl.Builder()
+            .setBufferDurationsMs(15_000, 50_000, 1_500, 3_000)
+            .setTargetBufferBytes(48 * 1024 * 1024)
+            .setPrioritizeTimeOverSizeThresholds(false)
+            .build()
         player = ExoPlayer.Builder(this)
+            .setLoadControl(loadControl)
             .setSeekBackIncrementMs(SEEK_STEP_MS)
             .setSeekForwardIncrementMs(SEEK_STEP_MS)
             .build()

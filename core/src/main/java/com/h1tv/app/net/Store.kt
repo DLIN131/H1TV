@@ -52,6 +52,13 @@ object Store {
         sp.edit().apply { if (ms > 0) putLong("pos_$id", ms) else remove("pos_$id") }.apply()
     }
 
+    /** 已經不在觀看紀錄裡的影片，進度就不用留了（紀錄最多 300 筆，進度不會無限增加） */
+    fun prunePositions() {
+        val keep = history.toList().mapTo(HashSet()) { "pos_${it.id}" }
+        val stale = sp.all.keys.filter { it.startsWith("pos_") && it !in keep }
+        if (stale.isNotEmpty()) sp.edit().apply { stale.forEach(::remove) }.apply()
+    }
+
     private fun load(key: String): List<Video> = runCatching {
         val arr = JSONArray(sp.getString(key, "[]"))
         List(arr.length()) { i ->

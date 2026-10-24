@@ -34,5 +34,6 @@ dependencies {
     api("androidx.lifecycle:lifecycle-viewmodel-ktx:2.9.1")
     api("org.jsoup:jsoup:1.18.3")
     api("com.squareup.okhttp3:okhttp:4.12.0")
+    api("io.coil-kt:coil:2.7.0")
     api("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
 }

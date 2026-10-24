@@ -51,6 +51,17 @@ class MainActivity : ComponentActivity() {
             PadTheme { AppRoot() }
         }
     }
+
+    // 播放影片或退到背景時讓隱藏的 WebView 休息
+    override fun onStart() {
+        super.onStart()
+        WebFetcher.resume()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        WebFetcher.pause()
+    }
 }
 
 enum class Tab(val label: String, val icon: ImageVector) {
