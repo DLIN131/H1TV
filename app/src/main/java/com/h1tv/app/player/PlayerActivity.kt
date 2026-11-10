@@ -33,6 +33,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.ui.PlayerView
 import com.h1tv.app.Prefs
+import com.h1tv.app.lock.PinLock
 import com.h1tv.app.net.Source
 import com.h1tv.app.net.Store
 import com.h1tv.app.net.WebFetcher
@@ -134,6 +135,8 @@ class PlayerActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // 系統回收 App 後直接恢復到播放器時，也要先上鎖
+        PinLock.install()
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         WindowCompat.setDecorFitsSystemWindows(window, false)
         WindowInsetsControllerCompat(window, window.decorView).apply {
@@ -428,6 +431,12 @@ class PlayerActivity : ComponentActivity() {
             delay(if (long) 6_000 else 1_800)
             hint.visibility = View.GONE
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // 離開超過 1 分鐘再回來：關掉播放器，回到主畫面的 PIN 解鎖畫面
+        if (PinLock.locked) finish()
     }
 
     override fun onPause() {

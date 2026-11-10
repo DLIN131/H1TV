@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -54,6 +55,7 @@ import androidx.tv.material3.NavigationDrawerItem
 import androidx.tv.material3.Text
 import androidx.tv.material3.rememberDrawerState
 import com.h1tv.app.Prefs
+import com.h1tv.app.lock.PinLock
 import com.h1tv.app.net.Site
 import com.h1tv.app.util.Updater
 import com.h1tv.app.net.WebFetcher
@@ -62,6 +64,7 @@ import kotlinx.coroutines.delay
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        PinLock.install()
         setContent {
             H1Theme { AppRoot() }
         }
@@ -85,12 +88,15 @@ enum class Tab(val label: String, val icon: ImageVector) {
     Search("搜尋", Icons.Filled.Search),
     Favorites("收藏", Icons.Filled.Favorite),
     History("觀看紀錄", Icons.Filled.DateRange),
+    Settings("設定", Icons.Filled.Settings),
 }
 
 @Composable
 fun AppRoot() {
     var tab by rememberSaveable { mutableStateOf(Tab.Home) }
     var firstLaunch by remember { mutableStateOf(true) }
+    // 第一次開 App 問要不要設定啟動 PIN 碼
+    var askPin by remember { mutableStateOf(!PinLock.enabled && !PinLock.prompted) }
     // 頁面堆疊：影片詳情、列表頁，可以一直往下點
     val stack = remember { mutableStateListOf<Route>() }
     val nav = remember {
@@ -108,7 +114,18 @@ fun AppRoot() {
                 .background(Bg)
         ) {
             val top = stack.lastOrNull()
-            if (top == null) {
+            if (PinLock.locked) {
+                // 解鎖後把焦點放回側邊選單，遙控器才有東西可以按
+                PinFlow(PinMode.Unlock, onFinish = {
+                    firstLaunch = true
+                    PinLock.unlock()
+                })
+            } else if (askPin) {
+                PinFlow(PinMode.FirstRun, onFinish = {
+                    firstLaunch = true
+                    askPin = false
+                })
+            } else if (top == null) {
                 HomeScreen(
                     tab = tab,
                     onTab = { tab = it },
@@ -126,7 +143,7 @@ fun AppRoot() {
             }
         }
     }
-    BackHandler(enabled = stack.isNotEmpty()) {
+    BackHandler(enabled = stack.isNotEmpty() && !PinLock.locked && !askPin) {
         if (stack.removeAt(stack.lastIndex) == Route.Verify) WebFetcher.reset()
     }
 
@@ -138,7 +155,8 @@ fun AppRoot() {
                 ?.let { Updater.pending = it }
         }
     }
-    Updater.pending?.let { release ->
+    // 解鎖前不跳更新視窗，免得蓋住 PIN 畫面
+    Updater.pending?.takeIf { !PinLock.locked && !askPin }?.let { release ->
         UpdateDialog(
             release,
             onDismiss = { Updater.pending = null },
@@ -221,6 +239,7 @@ fun HomeScreen(
                 Tab.Search -> SearchScreen()
                 Tab.Favorites -> LocalListScreen("收藏", favorites = true)
                 Tab.History -> LocalListScreen("觀看紀錄", favorites = false)
+                Tab.Settings -> SettingsScreen()
             }
         }
     }
